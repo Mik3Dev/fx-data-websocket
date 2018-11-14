@@ -16,7 +16,7 @@ const config = require('./config');
 
 const _ = require('lodash');
 const logger = require('morgan');
-
+const cors = require('cors')
 
 mongoose.connect(config.FX_DATABASE_URL, {
     'useNewUrlParser': true
@@ -25,6 +25,7 @@ mongoose.connect(config.FX_DATABASE_URL, {
     err => console.log(`Ups, something went wrong. Can not connect to database. \n${err}`)
 );
 
+app.use(cors());
 app.use(logger('dev'));
 app.use(express.json());
 

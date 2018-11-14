@@ -12,6 +12,7 @@
   "author": "miguel.acosta1978@gmail.com",
   "license": "ISC",
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^4.16.4",
     "lodash": "^4.17.11",
     "mongoose": "^5.3.12",
