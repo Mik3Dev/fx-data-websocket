@@ -1,5 +1,5 @@
 require('dotenv').load();
-const PORT= process.env.PORT || 3000;
+const PORT= process.env.PORT || 4000;
 const JWT_SECRET = process.env.JWT_SECRET;
 const FX_DATABASE_URL = process.env.FX_DATABASE_URL;
 const TIMER = process.env.TIMER
