@@ -1,23 +1,17 @@
 const express = require('express');
-const app = express();
-const http = require('http');
-const server = http.createServer(app);
 const socketIO = require('socket.io');
-const io = socketIO(server);
-const proxy = require('express-http-proxy')
-
-const mongoose = require('mongoose');
-const Candle = require('./models/candle');
-
-const instruments = require('./commons/insturments');
-const timeframes = require('./commons/timeframes');
-
-const path = require('path');
-const config = require('./config');
-
-const _ = require('lodash');
 const logger = require('morgan');
 const cors = require('cors')
+const path = require('path');
+const mongoose = require('mongoose');
+const _ = require('lodash');
+
+const PORT = process.env.PORT || 4000;
+
+const Candle = require('./models/candle');
+const instruments = require('./commons/insturments');
+const timeframes = require('./commons/timeframes');
+const config = require('./config');
 
 mongoose.connect(config.FX_DATABASE_URL, {
     'useNewUrlParser': true
@@ -26,29 +20,32 @@ mongoose.connect(config.FX_DATABASE_URL, {
     err => console.log(`Ups, something went wrong. Can not connect to database. \n${err}`)
 );
 
-app.use(cors());
-app.use(logger('dev'));
-app.use(express.json());
-app.use('/proxy', proxy('https://github.com/'));
+const server = express()
+    .use(logger('dev'))
+    .use(express.json())
+    .use(cors({
+        "origin": config.ORIGIN
+    }))
+    .use(express.static(path.join(__dirname, 'public')))
+    .listen(PORT, () => console.log(`Listening on ${ PORT }`));
 
-app.use(express.static(path.join(__dirname, 'public')));
+const io = socketIO(server);
 
 io.on('connection', (socket) => {
-    setInterval( () => {
-        let promises = [];
-        _.forEach(instruments, instrument => {
-            _.forEach(timeframes, timeframe => {
-                promises.push(new Promise((resolve) => {
-                    Candle.findOne({instrument, timeframe})
-                        .sort({'time':-1})
-                        .then(r => resolve(r));
-                }));
-            })
-        })
-        Promise.all(promises).then(r => socket.emit('fxData', r));
-    }, config.TIMER)
+    console.log('Client connected');
+    socket.on('disconnect', () => console.log('Client disconnected'));
 });
 
-server.listen(config.PORT, () => {
-    console.log(`The server is running on port ${config.PORT}`);
-})
+setInterval( () => {
+    let promises = [];
+    _.forEach(instruments, instrument => {
+        _.forEach(timeframes, timeframe => {
+            promises.push(new Promise((resolve) => {
+                Candle.findOne({instrument, timeframe})
+                    .sort({'time':-1})
+                    .then(r => resolve(r));
+            }));
+        })
+    })
+    Promise.all(promises).then(r => io.emit('fxData', r));
+}, config.TIMER);
